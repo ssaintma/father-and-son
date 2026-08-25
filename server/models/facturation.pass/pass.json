@@ -1,0 +1,16 @@
+{
+  "formatVersion": 1,
+  "passTypeIdentifier": "pass.com.votredomaine.facturation",
+  "teamIdentifier": "VOTRE_TEAM_ID",
+  "organizationName": "Ma Fiche Facturation",
+  "description": "Fiche de facturation entreprise",
+  "backgroundColor": "rgb(17,26,46)",
+  "foregroundColor": "rgb(255,255,255)",
+  "labelColor": "rgb(147,164,198)",
+  "generic": {
+    "primaryFields": [],
+    "secondaryFields": [],
+    "auxiliaryFields": [],
+    "backFields": []
+  }
+}

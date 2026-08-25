@@ -1,0 +1,19 @@
+# Fly.io — `fly launch` détecte ce fichier + le Dockerfile.
+app = "ma-fiche-facturation"        # changez pour un nom unique
+primary_region = "cdg"              # Paris
+
+[build]
+
+[env]
+  PORT = "3000"
+
+[http_service]
+  internal_port = 3000
+  force_https = true                # HTTPS obligatoire (Apple/Google Wallet)
+  auto_stop_machines = true
+  auto_start_machines = true
+  min_machines_running = 0          # 0 = ne paie rien à l'arrêt (léger cold start)
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "256mb"

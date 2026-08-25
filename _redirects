@@ -1,0 +1,2 @@
+# Netlify : toutes les URLs /siren/xxx servent l'app (routing côté client).
+/siren/*   /index.html   200

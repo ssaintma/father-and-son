@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<meta name="theme-color" content="#0b1220" />
+<title>Ma Fiche Facturation — SIREN &amp; TVA</title>
+<meta name="description" content="Récupérez les données légales de votre entreprise à partir du SIREN et présentez SIREN + numéro de TVA au format prêt pour la facturation électronique." />
+<style>
+  :root{
+    --bg:#0b1220; --panel:#111a2e; --panel-2:#0f1728; --line:#22304d;
+    --txt:#e8eefc; --muted:#93a4c6; --brand:#4f8cff; --brand-2:#7c5cff;
+    --ok:#2ecc71; --warn:#f5a623; --err:#ff5c6c; --chip:#1a2740;
+    --radius:16px;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    background:radial-gradient(1200px 600px at 50% -10%,#182444 0%,var(--bg) 55%);
+    color:var(--txt); min-height:100dvh; -webkit-font-smoothing:antialiased;
+    padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+  }
+  .wrap{max-width:560px;margin:0 auto;padding:24px 18px 60px}
+  header.app{text-align:center;margin:8px 0 22px}
+  .logo{width:54px;height:54px;border-radius:14px;margin:0 auto 12px;
+    background:linear-gradient(135deg,var(--brand),var(--brand-2));
+    display:flex;align-items:center;justify-content:center;font-size:26px;
+    box-shadow:0 10px 30px rgba(79,140,255,.35)}
+  h1{font-size:22px;margin:0 0 6px;letter-spacing:-.3px}
+  .sub{color:var(--muted);font-size:14px;line-height:1.5;margin:0}
+
+  .card{background:linear-gradient(180deg,var(--panel),var(--panel-2));
+    border:1px solid var(--line);border-radius:var(--radius);padding:18px;
+    box-shadow:0 20px 50px rgba(0,0,0,.35)}
+  .search{display:flex;gap:10px;margin-top:6px}
+  .field{flex:1;position:relative}
+  input[type=text]{width:100%;background:#0a1120;border:1px solid var(--line);
+    color:var(--txt);border-radius:12px;padding:15px 14px;font-size:18px;
+    letter-spacing:1.5px;font-variant-numeric:tabular-nums;outline:none;transition:border .15s}
+  input[type=text]:focus{border-color:var(--brand)}
+  input::placeholder{letter-spacing:normal;color:#54648a}
+  button{font-family:inherit;cursor:pointer;border:none}
+  .btn{background:linear-gradient(135deg,var(--brand),var(--brand-2));color:#fff;
+    border-radius:12px;padding:0 20px;font-size:16px;font-weight:600;min-width:64px;
+    display:flex;align-items:center;justify-content:center;transition:transform .08s,opacity .15s}
+  .btn:active{transform:scale(.97)}
+  .btn[disabled]{opacity:.5;cursor:not-allowed}
+  .hint{color:var(--muted);font-size:12.5px;margin:10px 2px 0;line-height:1.5}
+  .hint.bookmark{text-align:center;margin-top:16px;padding:11px 12px;border:1px dashed var(--line);
+    border-radius:12px;background:rgba(79,140,255,.06)}
+  .msg{margin-top:14px;padding:12px 14px;border-radius:12px;font-size:14px;display:none}
+  .msg.err{display:block;background:rgba(255,92,108,.12);border:1px solid rgba(255,92,108,.4);color:#ffc2c9}
+  .msg.info{display:block;background:rgba(79,140,255,.10);border:1px solid rgba(79,140,255,.35);color:#cfe0ff}
+
+  /* Result */
+  #result{margin-top:22px;display:none}
+  .biz-head{display:flex;align-items:flex-start;gap:14px;margin-bottom:6px}
+  .biz-badge{width:48px;height:48px;border-radius:12px;flex:none;background:var(--chip);
+    display:flex;align-items:center;justify-content:center;font-weight:700;font-size:20px;color:#cdd9f5}
+  .biz-name{font-size:19px;font-weight:700;line-height:1.25;margin:0}
+  .status{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;margin-top:6px;
+    padding:3px 10px;border-radius:999px;background:var(--chip);color:var(--muted)}
+  .status.on{color:#c9f7de;background:rgba(46,204,113,.14)}
+  .status.off{color:#ffd0d5;background:rgba(255,92,108,.14)}
+  .dot{width:7px;height:7px;border-radius:50%;background:currentColor}
+
+  .rows{margin-top:16px;border-top:1px solid var(--line)}
+  .row{display:flex;justify-content:space-between;gap:14px;align-items:center;
+    padding:13px 2px;border-bottom:1px solid var(--line)}
+  .row .k{color:var(--muted);font-size:13px}
+  .row .v{font-size:15px;font-weight:600;text-align:right;font-variant-numeric:tabular-nums}
+  .row .v.mono{letter-spacing:.5px}
+  .copy{margin-left:8px;background:var(--chip);color:#bcd0ff;border-radius:8px;
+    font-size:11px;padding:4px 8px;vertical-align:middle}
+  .copy:active{transform:scale(.94)}
+  .addr{font-weight:500;font-size:14px;line-height:1.4}
+
+  /* QR + Wallet */
+  .present{margin-top:20px;background:#0a1120;border:1px solid var(--line);border-radius:14px;padding:18px;text-align:center}
+  .present h3{margin:0 0 4px;font-size:15px}
+  .present p{margin:0 0 16px;color:var(--muted);font-size:12.5px}
+  #qr{width:200px;height:200px;margin:0 auto;background:#fff;border-radius:12px;padding:10px;display:flex;align-items:center;justify-content:center}
+  #qr img,#qr canvas{border-radius:6px}
+  .wallets{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:18px}
+  .wbtn{display:flex;align-items:center;justify-content:center;gap:8px;background:#000;color:#fff;
+    border:1px solid #2a3550;border-radius:12px;padding:12px;font-size:13.5px;font-weight:600}
+  .wbtn.g{background:#fff;color:#202124;border-color:#dadce0}
+  .wbtn:active{transform:scale(.97)}
+  .wbtn svg{width:18px;height:18px}
+
+  .foot{margin-top:22px;text-align:center;color:#5f7095;font-size:11.5px;line-height:1.6}
+  .foot a{color:#8fb0ff;text-decoration:none}
+
+  /* skeleton */
+  .sk{background:linear-gradient(90deg,#132140 25%,#1b2c50 37%,#132140 63%);
+    background-size:400% 100%;animation:sh 1.3s ease infinite;border-radius:8px}
+  @keyframes sh{0%{background-position:100% 0}100%{background-position:-100% 0}}
+
+  /* modal */
+  .modal-bg{position:fixed;inset:0;background:rgba(4,8,18,.7);backdrop-filter:blur(4px);
+    display:none;align-items:flex-end;justify-content:center;z-index:50;padding:0}
+  .modal-bg.open{display:flex}
+  .modal{background:var(--panel);border:1px solid var(--line);border-radius:20px 20px 0 0;
+    width:100%;max-width:560px;padding:22px 20px calc(24px + env(safe-area-inset-bottom));animation:up .25s ease}
+  @keyframes up{from{transform:translateY(30px);opacity:.6}to{transform:none;opacity:1}}
+  .modal h3{margin:0 0 10px;font-size:17px}
+  .modal p{color:var(--muted);font-size:13.5px;line-height:1.55;margin:0 0 12px}
+  .modal ol{color:var(--muted);font-size:13px;line-height:1.6;padding-left:18px;margin:0 0 14px}
+  .modal code{background:#0a1120;padding:2px 6px;border-radius:6px;color:#cfe0ff;font-size:12px}
+  .modal .btn{width:100%;padding:14px;margin-top:6px}
+  .modal .ghost{background:none;color:var(--muted);width:100%;padding:12px;font-size:14px;margin-top:4px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="app">
+    <div class="logo">🧾</div>
+    <h1>Ma Fiche Facturation</h1>
+    <p class="sub">Saisissez votre <strong>SIREN</strong> pour obtenir vos données légales &amp; votre <strong>N° de TVA</strong>, prêts à présenter pour la facturation électronique.</p>
+  </header>
+
+  <div class="card">
+    <form id="form" autocomplete="off">
+      <div class="search">
+        <div class="field">
+          <input id="siren" type="text" inputmode="numeric" maxlength="17"
+                 placeholder="Ex : 552 100 554" aria-label="Numéro SIREN" />
+        </div>
+        <button class="btn" id="go" type="submit">Rechercher</button>
+      </div>
+      <p class="hint">9 chiffres (SIREN) ou 14 chiffres (SIRET). Source : annuaire officiel <em>recherche-entreprises.api.gouv.fr</em>.</p>
+    </form>
+    <div class="msg" id="msg"></div>
+  </div>
+
+  <section id="result" aria-live="polite"></section>
+
+  <p class="foot">
+    Données publiques INSEE / RNE via <a href="https://recherche-entreprises.api.gouv.fr" target="_blank" rel="noopener">api.gouv.fr</a>.<br/>
+    N° de TVA calculé selon la clé officielle. Aucune donnée n'est stockée sur un serveur.
+  </p>
+</div>
+
+<!-- Wallet modal -->
+<div class="modal-bg" id="modalBg">
+  <div class="modal">
+    <h3 id="modalTitle">Ajouter au Wallet</h3>
+    <p id="modalDesc"></p>
+    <ol id="modalSteps"></ol>
+    <button class="btn" id="modalDownload">Télécharger le contenu de la carte (.json)</button>
+    <button class="ghost" id="modalClose">Fermer</button>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/gh/davidshimjs/qrcodejs@04f46c6a0708418cb7b96fc563eacae0fbf77674/qrcode.min.js"></script>
+<script>
+"use strict";
+
+/* ------------------------------------------------------------------ *
+ *  Nomenclatures INSEE (codes -> libellés) — les plus fréquentes.
+ * ------------------------------------------------------------------ */
+const NATURE_JURIDIQUE = {
+  "1000":"Entrepreneur individuel",
+  "5202":"SNC","5203":"SNC coopérative",
+  "5306":"Société en commandite simple","5307":"SC simple coopérative",
+  "5308":"Société en commandite par actions","5385":"SCA coopérative",
+  "5410":"SARL nationale","5415":"SARL d'économie mixte",
+  "5422":"SARL immobilière","5426":"SARL immobilière de gestion",
+  "5430":"SARL d'aménagement foncier","5431":"SARL d'attribution",
+  "5432":"SARL coopérative de construction","5442":"SARL coopérative ouvrière (SCOP)",
+  "5443":"SARL coopérative (SCM)","5451":"SARL coopérative agricole",
+  "5453":"SARL coopérative artisanale","5454":"SARL coopérative (transports)",
+  "5455":"SARL coopérative maritime","5458":"SARL union de sociétés coopératives",
+  "5459":"SARL coopérative","5460":"Autre SARL coopérative",
+  "5485":"SARL coopérative","5498":"SARL unipersonnelle (EURL)",
+  "5499":"SARL","5505":"SA à participation ouvrière à conseil d'administration",
+  "5510":"SA nationale à conseil d'administration","5515":"SA d'économie mixte à CA",
+  "5522":"SA immobilière à CA","5525":"SA immobilière de gestion à CA",
+  "5530":"SA d'aménagement foncier à CA","5531":"Société d'attribution à CA",
+  "5532":"SA coopérative de construction à CA","5542":"SA coopérative ouvrière (SCOP) à CA",
+  "5543":"SA coopérative de consommation à CA","5546":"SA coopérative de commerçants à CA",
+  "5547":"SA coopérative artisanale à CA","5548":"SA coopérative (transports) à CA",
+  "5551":"SA coopérative agricole à CA","5552":"SA coopérative (transports) à CA",
+  "5553":"SA coopérative maritime à CA","5554":"SA union de coopératives à CA",
+  "5555":"SA coopérative maritime à CA","5558":"SA union de coopératives à CA",
+  "5559":"SA coopérative à CA","5560":"Autre SA coopérative à CA",
+  "5585":"SA coopérative à CA","5599":"SA à conseil d'administration",
+  "5605":"SA à participation ouvrière à directoire","5610":"SA nationale à directoire",
+  "5615":"SA d'économie mixte à directoire","5622":"SA immobilière à directoire",
+  "5625":"SA immobilière de gestion à directoire","5630":"SA d'aménagement foncier à directoire",
+  "5631":"Société d'attribution à directoire","5632":"SA coopérative de construction à directoire",
+  "5642":"SA coopérative ouvrière (SCOP) à directoire","5643":"SA coopérative de consommation à directoire",
+  "5646":"SA coopérative de commerçants à directoire","5647":"SA coopérative artisanale à directoire",
+  "5648":"SA coopérative (transports) à directoire","5651":"SA coopérative agricole à directoire",
+  "5652":"SA coopérative (transports) à directoire","5653":"SA coopérative maritime à directoire",
+  "5654":"SA union de coopératives à directoire","5655":"SA coopérative maritime à directoire",
+  "5658":"SA union de coopératives à directoire","5659":"SA coopérative à directoire",
+  "5660":"Autre SA coopérative à directoire","5685":"SA coopérative à directoire",
+  "5699":"SA à directoire","5710":"SAS, société par actions simplifiée",
+  "5720":"SASU, société par actions simplifiée à associé unique",
+  "5785":"Société d'exercice libéral par actions simplifiée (SELAS)",
+  "5800":"Société européenne",
+  "6220":"Groupement d'intérêt économique (GIE)",
+  "6316":"Coopérative d'utilisation de matériel agricole (CUMA)",
+  "6317":"Société coopérative agricole","6318":"Union de sociétés coopératives agricoles",
+  "6411":"Société d'assurance à forme mutuelle","6511":"Sociétés d'investissement à capital variable (SICAV)",
+  "6521":"Société civile de placement collectif immobilier (SCPI)",
+  "6540":"Société civile immobilière (SCI)","6541":"Société civile immobilière de construction-vente",
+  "6558":"Société civile d'exploitation agricole","6560":"Autre société civile",
+  "6561":"SC de personnes professions libérales (SCP)","6599":"Société civile",
+  "9210":"Association non déclarée","9220":"Association déclarée",
+  "9260":"Association reconnue d'utilité publique","9300":"Fondation"
+};
+
+const TRANCHE_EFFECTIF = {
+  "NN":"Non renseignée","00":"0 salarié","01":"1 ou 2 salariés","02":"3 à 5 salariés",
+  "03":"6 à 9 salariés","11":"10 à 19 salariés","12":"20 à 49 salariés",
+  "21":"50 à 99 salariés","22":"100 à 199 salariés","31":"200 à 249 salariés",
+  "32":"250 à 499 salariés","41":"500 à 999 salariés","42":"1 000 à 1 999 salariés",
+  "51":"2 000 à 4 999 salariés","52":"5 000 à 9 999 salariés","53":"10 000 salariés et plus"
+};
+
+/* ------------------------------------------------------------------ *
+ *  Utilitaires
+ * ------------------------------------------------------------------ */
+const $ = (s,el=document)=>el.querySelector(s);
+
+// Validation SIREN par la clé de Luhn.
+function luhnValid(num){
+  let sum=0, alt=false;
+  for(let i=num.length-1;i>=0;i--){
+    let n=parseInt(num[i],10);
+    if(alt){ n*=2; if(n>9) n-=9; }
+    sum+=n; alt=!alt;
+  }
+  return sum%10===0;
+}
+
+// N° de TVA intracommunautaire : FR + clé + SIREN.
+// clé = (12 + 3 * (SIREN mod 97)) mod 97
+function tvaFromSiren(siren){
+  const s = BigInt(siren);
+  const key = (12n + 3n * (s % 97n)) % 97n;
+  return "FR" + String(key).padStart(2,"0") + siren;
+}
+
+function formatSiren(s){ return s.replace(/(\d{3})(\d{3})(\d{3})/, "$1 $2 $3"); }
+function formatSiret(s){ return s.replace(/(\d{3})(\d{3})(\d{3})(\d{5})/, "$1 $2 $3 $4"); }
+
+function ageFromDate(iso){
+  if(!iso) return null;
+  const d=new Date(iso), now=new Date();
+  if(isNaN(d)) return null;
+  let months=(now.getFullYear()-d.getFullYear())*12 + (now.getMonth()-d.getMonth());
+  if(now.getDate()<d.getDate()) months--;
+  if(months<0) return null;
+  const y=Math.floor(months/12), m=months%12;
+  const parts=[];
+  if(y>0) parts.push(y+" an"+(y>1?"s":""));
+  if(m>0) parts.push(m+" mois");
+  if(!parts.length) parts.push("moins d'un mois");
+  return parts.join(" et ");
+}
+
+function frDate(iso){
+  if(!iso) return "—";
+  const d=new Date(iso);
+  if(isNaN(d)) return iso;
+  return d.toLocaleDateString("fr-FR",{day:"numeric",month:"long",year:"numeric"});
+}
+
+function initials(name){
+  return (name||"?").trim().split(/\s+/).slice(0,2).map(w=>w[0]||"").join("").toUpperCase();
+}
+
+/* ------------------------------------------------------------------ *
+ *  DOM & state
+ * ------------------------------------------------------------------ */
+const form=$("#form"), input=$("#siren"), goBtn=$("#go"),
+      msg=$("#msg"), result=$("#result");
+let current=null; // dernières données mappées
+
+function showMsg(text,type="info"){ msg.className="msg "+type; msg.innerHTML=text; }
+function clearMsg(){ msg.className="msg"; msg.textContent=""; }
+
+// Saisie : on garde uniquement les chiffres, avec espacement lisible.
+input.addEventListener("input",()=>{
+  let d=input.value.replace(/\D/g,"").slice(0,14);
+  if(d.length<=9) input.value=formatSiren(d);
+  else input.value=formatSiret(d);
+});
+
+form.addEventListener("submit",async e=>{
+  e.preventDefault();
+  const digits=input.value.replace(/\D/g,"");
+  const siren = digits.length>=14 ? digits.slice(0,9) : digits;
+
+  clearMsg();
+  if(siren.length!==9){ showMsg("Un SIREN comporte 9 chiffres (ou saisissez un SIRET de 14 chiffres).","err"); return; }
+  if(!luhnValid(siren)){ showMsg("Ce numéro ne semble pas valide (clé de contrôle incorrecte). Vérifiez la saisie.","err"); return; }
+
+  await lookup(siren);
+});
+
+async function lookup(siren){
+  goBtn.disabled=true; goBtn.textContent="…";
+  renderSkeleton();
+  try{
+    const url=`https://recherche-entreprises.api.gouv.fr/search?q=${siren}&page=1&per_page=5`;
+    const res=await fetch(url,{headers:{"Accept":"application/json"}});
+    if(!res.ok) throw new Error("HTTP "+res.status);
+    const data=await res.json();
+    const hit=(data.results||[]).find(r=>r.siren===siren) || (data.results||[])[0];
+    if(!hit || hit.siren!==siren){
+      result.style.display="none";
+      showMsg("Aucune entreprise trouvée pour ce SIREN. Vérifiez le numéro.","err");
+      return;
+    }
+    current=mapCompany(hit,siren);
+    clearMsg();
+    renderCompany(current);
+    updateUrl(siren);
+  }catch(err){
+    result.style.display="none";
+    showMsg("Impossible de contacter l'annuaire ("+err.message+"). Vérifiez votre connexion et réessayez.","err");
+  }finally{
+    goBtn.disabled=false; goBtn.textContent="Rechercher";
+  }
+}
+
+function mapCompany(r,siren){
+  const s=r.siege||{};
+  return {
+    siren,
+    siret: s.siret||"",
+    nom: r.nom_complet||r.nom_raison_sociale||"Entreprise",
+    tva: tvaFromSiren(siren),
+    forme: NATURE_JURIDIQUE[r.nature_juridique] || (r.nature_juridique? "Code "+r.nature_juridique : "—"),
+    naf: r.activite_principale || s.activite_principale || "",
+    adresse: s.adresse || "",
+    codePostal: s.code_postal||"",
+    commune: s.libelle_commune||"",
+    actif: (s.etat_administratif||r.etat_administratif)==="A",
+    dateCreation: r.date_creation || s.date_creation || "",
+    effectif: TRANCHE_EFFECTIF[r.tranche_effectif_salarie] || TRANCHE_EFFECTIF[s.tranche_effectif_salarie] || null,
+    categorie: r.categorie_entreprise||""
+  };
+}
+
+/* ------------------------------------------------------------------ *
+ *  Rendu
+ * ------------------------------------------------------------------ */
+function renderSkeleton(){
+  result.style.display="block";
+  result.innerHTML=`<div class="card">
+    <div class="biz-head">
+      <div class="sk" style="width:48px;height:48px;border-radius:12px"></div>
+      <div style="flex:1"><div class="sk" style="height:18px;width:70%"></div>
+      <div class="sk" style="height:14px;width:40%;margin-top:10px"></div></div>
+    </div>
+    <div class="rows">
+      ${'<div class="row"><div class="sk" style="height:13px;width:30%"></div><div class="sk" style="height:15px;width:45%"></div></div>'.repeat(5)}
+    </div></div>`;
+}
+
+function row(k,v,extra=""){
+  return `<div class="row"><div class="k">${k}</div><div class="v ${extra}">${v}</div></div>`;
+}
+
+function renderCompany(c){
+  const age=ageFromDate(c.dateCreation);
+  const addr=[c.adresse].filter(Boolean).join(" ");
+  result.style.display="block";
+  result.innerHTML=`
+  <div class="card">
+    <div class="biz-head">
+      <div class="biz-badge">${initials(c.nom)}</div>
+      <div>
+        <p class="biz-name">${c.nom}</p>
+        <span class="status ${c.actif?'on':'off'}"><span class="dot"></span>${c.actif?'Entreprise active':'Cessée / radiée'}</span>
+      </div>
+    </div>
+
+    <div class="rows">
+      ${row("SIREN", `<span class="mono">${formatSiren(c.siren)}</span>`+copyBtn(c.siren))}
+      ${row("N° TVA intracom.", `<span class="mono">${c.tva}</span>`+copyBtn(c.tva))}
+      ${c.siret?row("SIRET (siège)", `<span class="mono">${formatSiret(c.siret)}</span>`+copyBtn(c.siret)):""}
+      ${row("Forme juridique", c.forme)}
+      ${c.naf?row("Code APE / NAF", `<span class="mono">${c.naf}</span>`):""}
+      ${addr?`<div class="row"><div class="k">Adresse siège</div><div class="v addr">${addr}</div></div>`:""}
+      ${row("Création", frDate(c.dateCreation))}
+      ${age?row("Âge de l'entreprise", age):""}
+      ${c.effectif?row("Effectif salarié", c.effectif):""}
+      ${c.categorie?row("Catégorie", c.categorie):""}
+    </div>
+
+    <div class="hint bookmark">
+      🔖 <strong>C'est votre entreprise ?</strong> Ajoutez cette page à vos favoris (Cmd/Ctrl + D) pour la retrouver en un geste.
+      <button class="copy" type="button" onclick="copyVal(this,'${permalink(c.siren)}')">Copier le lien</button>
+    </div>
+
+    <div class="present">
+      <h3>Présenter au commerçant</h3>
+      <p>Faites scanner ce QR code pour transmettre SIREN + TVA instantanément.</p>
+      <div id="qr"></div>
+      <div class="wallets">
+        <button class="wbtn" id="applePass" type="button">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M16.4 12.6c0-2 1.6-3 1.7-3.1-1-1.4-2.4-1.6-2.9-1.6-1.2-.1-2.4.7-3 .7-.6 0-1.6-.7-2.6-.7-1.3 0-2.6.8-3.3 2-1.4 2.5-.4 6.1 1 8.1.7 1 1.4 2 2.4 2 .9 0 1.3-.6 2.4-.6s1.4.6 2.4.6c1 0 1.7-1 2.3-2 .5-.7.7-1.5.7-1.5s-1.6-.6-1.6-2.4zM14.7 5.9c.5-.7.9-1.6.8-2.6-.8 0-1.7.5-2.3 1.2-.5.6-.9 1.5-.8 2.5.9 0 1.7-.5 2.3-1.1z"/></svg>
+          Apple Wallet
+        </button>
+        <button class="wbtn g" id="googlePass" type="button">
+          <svg viewBox="0 0 24 24"><path fill="#4285F4" d="M21.6 12.2c0-.7-.1-1.3-.2-1.9H12v3.7h5.4c-.2 1.2-.9 2.2-2 2.9v2.4h3.2c1.9-1.7 3-4.3 3-7.1z"/><path fill="#34A853" d="M12 22c2.7 0 5-.9 6.6-2.4l-3.2-2.4c-.9.6-2 .9-3.4.9-2.6 0-4.8-1.7-5.6-4.1H3.1v2.5C4.7 19.8 8.1 22 12 22z"/><path fill="#FBBC05" d="M6.4 13.9c-.2-.6-.3-1.2-.3-1.9s.1-1.3.3-1.9V7.6H3.1C2.4 9 2 10.4 2 12s.4 3 1.1 4.4l3.3-2.5z"/><path fill="#EA4335" d="M12 6c1.5 0 2.8.5 3.8 1.5l2.8-2.8C16.9 3.1 14.7 2 12 2 8.1 2 4.7 4.2 3.1 7.6l3.3 2.5C7.2 7.7 9.4 6 12 6z"/></svg>
+          Google Wallet
+        </button>
+      </div>
+    </div>
+  </div>`;
+
+  buildQR(c);
+  $("#applePass").addEventListener("click",()=>onWalletClick("apple",c));
+  $("#googlePass").addEventListener("click",()=>onWalletClick("google",c));
+  result.scrollIntoView({behavior:"smooth",block:"start"});
+}
+
+function copyBtn(val){
+  return `<button class="copy" type="button" onclick="copyVal(this,'${val}')">Copier</button>`;
+}
+window.copyVal=async function(btn,val){
+  try{ await navigator.clipboard.writeText(val); const t=btn.textContent; btn.textContent="✓"; setTimeout(()=>btn.textContent=t,1200);}catch(e){}
+};
+
+/* Texte embarqué dans le QR — lisible par n'importe quel scanner. */
+function qrPayload(c){
+  return [
+    c.nom,
+    "SIREN : "+formatSiren(c.siren),
+    "TVA : "+c.tva,
+    c.siret?("SIRET : "+formatSiret(c.siret)):"",
+    c.adresse?("Adresse : "+c.adresse):""
+  ].filter(Boolean).join("\n");
+}
+
+function buildQR(c){
+  const box=$("#qr"); box.innerHTML="";
+  if(typeof QRCode==="undefined"){
+    box.innerHTML='<span style="color:#333;font-size:12px;padding:8px">QR indisponible hors ligne</span>';
+    return;
+  }
+  new QRCode(box,{text:qrPayload(c),width:180,height:180,correctLevel:QRCode.CorrectLevel.M});
+}
+
+/* ------------------------------------------------------------------ *
+ *  Wallet (MVP) : structures prêtes à signer + explication.
+ * ------------------------------------------------------------------ */
+const modalBg=$("#modalBg");
+$("#modalClose").addEventListener("click",()=>modalBg.classList.remove("open"));
+modalBg.addEventListener("click",e=>{ if(e.target===modalBg) modalBg.classList.remove("open"); });
+
+function applePassJson(c){
+  return {
+    formatVersion:1,
+    passTypeIdentifier:"pass.com.VOTRE_ID.facturation",
+    teamIdentifier:"VOTRE_TEAM_ID",
+    organizationName:c.nom,
+    description:"Fiche de facturation "+c.nom,
+    serialNumber:c.siren,
+    backgroundColor:"rgb(17,26,46)",
+    foregroundColor:"rgb(255,255,255)",
+    labelColor:"rgb(147,164,198)",
+    generic:{
+      primaryFields:[{key:"name",label:"Entreprise",value:c.nom}],
+      secondaryFields:[
+        {key:"siren",label:"SIREN",value:formatSiren(c.siren)},
+        {key:"tva",label:"N° TVA",value:c.tva}
+      ],
+      auxiliaryFields:[
+        {key:"siret",label:"SIRET",value:c.siret?formatSiret(c.siret):"—"},
+        {key:"forme",label:"Forme",value:c.forme}
+      ],
+      backFields:[
+        {key:"adresse",label:"Adresse",value:c.adresse||"—"},
+        {key:"ape",label:"Code APE",value:c.naf||"—"}
+      ]
+    },
+    barcodes:[{format:"PKBarcodeFormatQR",message:qrPayload(c),messageEncoding:"iso-8859-1"}]
+  };
+}
+
+function googlePassObject(c){
+  return {
+    genericObjects:[{
+      id:"ISSUER_ID.siren-"+c.siren,
+      classId:"ISSUER_ID.facturation_class",
+      state:"ACTIVE",
+      cardTitle:{defaultValue:{language:"fr",value:"Fiche facturation"}},
+      header:{defaultValue:{language:"fr",value:c.nom}},
+      textModulesData:[
+        {header:"SIREN",body:formatSiren(c.siren)},
+        {header:"N° TVA",body:c.tva},
+        {header:"SIRET",body:c.siret?formatSiret(c.siret):"—"},
+        {header:"Forme juridique",body:c.forme},
+        {header:"Adresse",body:c.adresse||"—"}
+      ],
+      barcode:{type:"QR_CODE",value:qrPayload(c)},
+      hexBackgroundColor:"#111a2e"
+    }]
+  };
+}
+
+// Tente le backend de signature ; si absent (hébergement statique / fichier
+// local), on retombe proprement sur le modal explicatif + export JSON.
+async function onWalletClick(kind,c){
+  const btn = kind==="apple" ? $("#applePass") : $("#googlePass");
+  const label = btn.innerHTML;
+  btn.disabled=true; btn.style.opacity=".6";
+  try{
+    const res = await fetch(`/api/wallet/${kind}/${c.siren}`, {method:"GET"});
+    if(!res.ok) throw new Error("backend "+res.status);
+    if(kind==="apple"){
+      const blob=await res.blob();
+      if(blob.size<200) throw new Error("pass vide");
+      const a=document.createElement("a");
+      a.href=URL.createObjectURL(blob); a.download=c.siren+".pkpass";
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(()=>URL.revokeObjectURL(a.href),2000);
+    }else{
+      const j=await res.json();
+      if(!j.saveUrl) throw new Error("lien manquant");
+      window.open(j.saveUrl,"_blank","noopener");
+    }
+  }catch(e){
+    openWallet(kind,c); // fallback MVP
+  }finally{
+    btn.disabled=false; btn.style.opacity=""; btn.innerHTML=label;
+  }
+}
+
+function openWallet(kind,c){
+  const isApple=kind==="apple";
+  $("#modalTitle").textContent = isApple? "Ajouter à Apple Wallet" : "Ajouter à Google Wallet";
+  $("#modalDesc").innerHTML = isApple
+    ? "Le contenu de votre carte est prêt. Pour générer un vrai <code>.pkpass</code> installable, il doit être <strong>signé</strong> par un service avec votre certificat Apple Developer."
+    : "Le contenu de votre carte est prêt. Pour un bouton « Ajouter à Google Wallet » fonctionnel, l'objet doit être <strong>signé (JWT)</strong> via un compte de service Google Wallet API.";
+  $("#modalSteps").innerHTML = isApple
+    ? `<li>Renseignez <code>passTypeIdentifier</code> et <code>teamIdentifier</code>.</li>
+       <li>Signez le dossier avec votre certificat Apple (<code>.p12</code>) côté serveur.</li>
+       <li>Servez le <code>.pkpass</code> — iPhone l'ouvre dans Wallet.</li>`
+    : `<li>Créez une classe générique dans la console Google Wallet.</li>
+       <li>Générez un JWT signé avec votre compte de service.</li>
+       <li>Exposez le lien <code>pay.google.com/gp/v/save/&lt;jwt&gt;</code>.</li>`;
+  const payload = isApple? applePassJson(c) : googlePassObject(c);
+  $("#modalDownload").onclick=()=>downloadJson(
+    (isApple?"apple-pass-":"google-wallet-")+c.siren+".json", payload);
+  modalBg.classList.add("open");
+}
+
+function downloadJson(filename,obj){
+  const blob=new Blob([JSON.stringify(obj,null,2)],{type:"application/json"});
+  const a=document.createElement("a");
+  a.href=URL.createObjectURL(blob); a.download=filename;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(a.href),2000);
+}
+
+/* ------------------------------------------------------------------ *
+ *  Routeur : /siren/819904988 (bookmarkable), #819904988 ou ?siren=…
+ * ------------------------------------------------------------------ */
+const served = location.protocol==="http:"||location.protocol==="https:";
+
+function sirenFromLocation(){
+  const mPath=location.pathname.match(/siren\/(\d{9})/);      // /siren/819904988
+  if(mPath) return mPath[1];
+  const mHash=(location.hash||"").match(/(\d{9})/);           // #819904988 (mode fichier)
+  if(mHash) return mHash[1];
+  const q=new URLSearchParams(location.search).get("siren");  // ?siren=819904988
+  if(q){ const d=q.replace(/\D/g,"").slice(0,9); if(d.length===9) return d; }
+  return null;
+}
+
+// URL propre et bookmarkable une fois la fiche chargée.
+function updateUrl(siren){
+  try{
+    if(served){
+      const clean="/siren/"+siren;
+      if(location.pathname!==clean) history.replaceState({siren},"",clean);
+    }else{
+      if(location.hash!=="#"+siren) history.replaceState({siren},"","#"+siren);
+    }
+  }catch(e){ try{ location.hash=siren; }catch(_){} }
+}
+
+// Lien partageable/à copier de la fiche courante.
+function permalink(siren){
+  if(served) return location.origin+"/siren/"+siren;
+  return location.href.split(/[?#]/)[0]+"#"+siren;
+}
+
+function routeLoad(){
+  const s=sirenFromLocation();
+  if(s && /^\d{9}$/.test(s) && luhnValid(s)){
+    input.value=formatSiren(s);
+    lookup(s);
+  }
+}
+window.addEventListener("popstate",routeLoad);
+routeLoad();
+</script>
+</body>
+</html>

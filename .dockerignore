@@ -1,0 +1,7 @@
+**/node_modules
+**/.env
+**/certs
+**/*.p12
+**/*-sa.json
+.git
+*.md
