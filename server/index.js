@@ -24,6 +24,14 @@ app.get("/", serveApp);
 app.get("/siren/:siren", serveApp);
 
 /* ------------------------------------------------------------------ *
+ *  Statut : le front n'affiche les boutons Wallet que si la signature
+ *  est réellement opérationnelle (certificats configurés).
+ * ------------------------------------------------------------------ */
+app.get("/api/wallet/status", (_req, res) => {
+  res.json({ apple: Boolean(appleConfigured()), google: Boolean(googleConfigured()) });
+});
+
+/* ------------------------------------------------------------------ *
  *  2) Apple Wallet : génération d'un .pkpass signé
  * ------------------------------------------------------------------ */
 const APPLE = {

@@ -82,8 +82,8 @@
   .present p{margin:0 0 16px;color:var(--muted);font-size:12.5px}
   #qr{width:200px;height:200px;margin:0 auto;background:#fff;border-radius:12px;padding:10px;display:flex;align-items:center;justify-content:center}
   #qr img,#qr canvas{border-radius:6px}
-  .wallets{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:18px}
-  .wbtn{display:flex;align-items:center;justify-content:center;gap:8px;background:#000;color:#fff;
+  .wallets{display:none;gap:10px;margin-top:18px}
+  .wbtn{flex:1;display:flex;align-items:center;justify-content:center;gap:8px;background:#000;color:#fff;
     border:1px solid #2a3550;border-radius:12px;padding:12px;font-size:13.5px;font-weight:600}
   .wbtn.g{background:#fff;color:#202124;border-color:#dadce0}
   .wbtn:active{transform:scale(.97)}
@@ -404,12 +404,12 @@ function renderCompany(c){
       <h3>Présenter au commerçant</h3>
       <p>Faites scanner ce QR code pour transmettre SIREN + TVA instantanément.</p>
       <div id="qr"></div>
-      <div class="wallets">
-        <button class="wbtn" id="applePass" type="button">
+      <div class="wallets" id="walletButtons">
+        <button class="wbtn" id="applePass" type="button" style="display:none">
           <svg viewBox="0 0 24 24" fill="currentColor"><path d="M16.4 12.6c0-2 1.6-3 1.7-3.1-1-1.4-2.4-1.6-2.9-1.6-1.2-.1-2.4.7-3 .7-.6 0-1.6-.7-2.6-.7-1.3 0-2.6.8-3.3 2-1.4 2.5-.4 6.1 1 8.1.7 1 1.4 2 2.4 2 .9 0 1.3-.6 2.4-.6s1.4.6 2.4.6c1 0 1.7-1 2.3-2 .5-.7.7-1.5.7-1.5s-1.6-.6-1.6-2.4zM14.7 5.9c.5-.7.9-1.6.8-2.6-.8 0-1.7.5-2.3 1.2-.5.6-.9 1.5-.8 2.5.9 0 1.7-.5 2.3-1.1z"/></svg>
           Apple Wallet
         </button>
-        <button class="wbtn g" id="googlePass" type="button">
+        <button class="wbtn g" id="googlePass" type="button" style="display:none">
           <svg viewBox="0 0 24 24"><path fill="#4285F4" d="M21.6 12.2c0-.7-.1-1.3-.2-1.9H12v3.7h5.4c-.2 1.2-.9 2.2-2 2.9v2.4h3.2c1.9-1.7 3-4.3 3-7.1z"/><path fill="#34A853" d="M12 22c2.7 0 5-.9 6.6-2.4l-3.2-2.4c-.9.6-2 .9-3.4.9-2.6 0-4.8-1.7-5.6-4.1H3.1v2.5C4.7 19.8 8.1 22 12 22z"/><path fill="#FBBC05" d="M6.4 13.9c-.2-.6-.3-1.2-.3-1.9s.1-1.3.3-1.9V7.6H3.1C2.4 9 2 10.4 2 12s.4 3 1.1 4.4l3.3-2.5z"/><path fill="#EA4335" d="M12 6c1.5 0 2.8.5 3.8 1.5l2.8-2.8C16.9 3.1 14.7 2 12 2 8.1 2 4.7 4.2 3.1 7.6l3.3 2.5C7.2 7.7 9.4 6 12 6z"/></svg>
           Google Wallet
         </button>
@@ -420,6 +420,7 @@ function renderCompany(c){
   buildQR(c);
   $("#applePass").addEventListener("click",()=>onWalletClick("apple",c));
   $("#googlePass").addEventListener("click",()=>onWalletClick("google",c));
+  gateWallets();
   result.scrollIntoView({behavior:"smooth",block:"start"});
 }
 
@@ -506,6 +507,20 @@ function googlePassObject(c){
       hexBackgroundColor:"#111a2e"
     }]
   };
+}
+
+// N'affiche un bouton Wallet que si le backend confirme que la signature est
+// opérationnelle. Sans backend configuré (statique / fichier local), les boutons
+// restent masqués — la feature n'apparaît que lorsqu'elle fonctionne vraiment.
+async function gateWallets(){
+  try{
+    const res=await fetch("/api/wallet/status",{cache:"no-store"});
+    if(!res.ok) return;
+    const s=await res.json();
+    if(s.apple)  $("#applePass").style.display="";
+    if(s.google) $("#googlePass").style.display="";
+    if(s.apple || s.google) $("#walletButtons").style.display="flex";
+  }catch(e){ /* pas de backend joignable : on laisse masqué */ }
 }
 
 // Tente le backend de signature ; si absent (hébergement statique / fichier
